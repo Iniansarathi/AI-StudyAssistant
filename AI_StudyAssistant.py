@@ -1,14 +1,61 @@
 # PDF reader
 
 import fitz
+import io
+import os
+import easyocr
+import numpy as np
+from PIL import Image
 
-pdf_path = r"C:\Users\MSI\Downloads\Iniansarathi Resume.pdf"
+pdf_input = input("Enter the location of the pdf : ").strip().strip('"')
+pdf_path = pdf_input.replace("\\", "/")
+
+# Create EasyOCR reader
+reader = easyocr.Reader(['en'], gpu=False)
+
+# Open the PDF
 doc = fitz.open(pdf_path)
 all_text = ""
-for page in doc:
-    page_text = page.get_text()
-    all_text += page_text
+
+# Loop through each page
+for page_num in range(len(doc)):
+    #if 0 <= page_num <= 2:
+        page = doc[page_num]
+        page_text = f"[Page {page_num + 1}]\n"
+
+        # ✅ Extract regular PDF text
+        print(f"Extracting text from page no : {page_num + 1}")
+        extracted_text = page.get_text().strip()
+        if extracted_text:
+            page_text += f"\n[Text Content]\n{extracted_text}\n"
+
+        # ✅ Extract images + OCR
+        image_list = page.get_images(full=True)
+        if image_list:
+            print(f"Extracting image text from page no : {page_num + 1}")
+            for img_index, img in enumerate(image_list):
+                img_id = img[0]
+                base_image = doc.extract_image(img_id)
+                image_bytes = base_image["image"]
+                image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+
+                np_image = np.array(image)
+                image_text_list = reader.readtext(np_image, detail=0)
+                image_text = "\n".join(image_text_list)
+
+                page_text += f"\n[Image Content {img_index + 1}]\n{image_text.strip()}\n"
+
+        all_text += page_text + "\n\n"
+
+# ✅ Final output
 print(all_text)
+print(f"✅ Total extracted characters: {len(all_text)}")
+
+
+# ✅ Final output
+print(all_text)
+
+print("Text extract from pdf successfully")
 
 # Tokenizer
 
@@ -16,21 +63,13 @@ from langchain_text_splitters import TokenTextSplitter
 
 splitter = TokenTextSplitter(chunk_size= 500 , chunk_overlap= 50)
 chunks = splitter.split_text(all_text)
-for chunk in chunks :
-    print("************")
-    print(chunk)
-    print("************")
 print(f"Total chunks created : {len(chunks)}")
 
 # Document Converter
 
 from langchain.schema import Document
 
-documents = [Document(chunk)for chunk in chunks]
-for docu in documents :
-    print("#############")
-    print(docu)
-    print("#############")
+documents = [Document(page_content= chunk)for chunk in chunks]
 print(f"Total documents created : {len(documents)}")
 
 # Embedding Model
@@ -94,9 +133,11 @@ Context:
 Question:
 {question}
 
-First provide a detailed notes of 500 words on the topic, like this:
+First provide a detailed notes of 500 words on the topic, like this[split it into 3 paragraphs]:
 Notes:
-...
+paragraph 1
+paragraph 2
+paragraph 3
 
 Then create 5 MCQ questions, like this:
 1) Question?
@@ -122,11 +163,27 @@ print("RetrievalQA set successfully")
 
 # User query section
 
-def quer ():
+#def quer ():
+#    query = input("Enter your query : ")
+#    raw_result = qa.invoke({"query" : query })
+#    llm_output = raw_result["result"].strip()
+#    print("LLM output : ",llm_output)
+def quer():
     query = input("Enter your query : ")
-    raw_result = qa.invoke({"query" : query })
+
+    # 🔍 Step 1: See what documents are retrieved
+    retrieved_docs = hybrid_retriever.get_relevant_documents(query)
+    print(f"\n📄 Retrieved {len(retrieved_docs)} documents:\n")
+
+    for i, doc in enumerate(retrieved_docs, 1):
+        print(f"\n--- Document {i} ---\n{doc.page_content}\n")
+
+    # ✅ Step 2: Call the QA chain
+    raw_result = qa.invoke({"query": query})
     llm_output = raw_result["result"].strip()
-    print("LLM output : ",llm_output)
+
+    print("\n🤖 LLM Output:\n", llm_output)
+
 
 def yn():
     while True:
@@ -140,6 +197,7 @@ def yn():
 
 
 while True:
+
     quer()
     if not yn():
         break
