@@ -47,15 +47,8 @@ for page_num in range(len(doc)):
 
         all_text += page_text + "\n\n"
 
-# ✅ Final output
-print(all_text)
-print(f"✅ Total extracted characters: {len(all_text)}")
 
-
-# ✅ Final output
-print(all_text)
-
-print("Text extract from pdf successfully")
+print("Text extract from pdf successfully ✅")
 
 # Tokenizer
 
@@ -77,14 +70,14 @@ print(f"Total documents created : {len(documents)}")
 from langchain_huggingface import HuggingFaceEmbeddings
 
 embedding_model = HuggingFaceEmbeddings(model_name = "sentence-transformers/all-MiniLM-L6-v2" )
-print("Embedding model created successfully")
+print("Embedding model created successfully ✅")
 # Vectorstorage
 
 from langchain_community.vectorstores import FAISS
 
 vector_store = FAISS.from_documents(documents,embedding_model)
-print("Embeddings stored in vector DB successfully")
-print(vector_store)
+print("Embeddings stored in vector DB successfully ✅")
+# print(vector_store)
 
 # Retrievers
 
@@ -100,7 +93,7 @@ hybrid_retriever = EnsembleRetriever(
     retrievers = [vector_retriever, bm25_retriever],
     weights = [0.7 , 0.3]
 )
-print("✅ Retrievers ready.")
+print("Retrievers ready ✅")
 
 #Initialize LLM
 
@@ -116,7 +109,7 @@ llm = ChatGroq(
     model="meta-llama/llama-4-scout-17b-16e-instruct",
     temperature=0.5
 )
-print("✅ LLM initialized successfully")
+print("LLM initialized successfully ✅")
 
 # Prompt Template
 
@@ -133,11 +126,12 @@ Context:
 Question:
 {question}
 
-First provide a detailed notes of 500 words on the topic, like this[split it into 3 paragraphs]:
+First provide a detailed notes of 500 words on the topic, like this 
 Notes:
-paragraph 1
-paragraph 2
-paragraph 3
+
+Paragraph 1
+Paragraph 2
+Paragraph 3
 
 Then create 5 MCQ questions, like this:
 1) Question?
@@ -145,9 +139,17 @@ A. Option 1
 B. Option 2
 C. Option 3
 D. Option 4
+
+Then show the correct answers to the 5 MCQ questions like this :
+Answers : 
+1) A
+2) B
+3) C
+4) D
+5) A
 """
 )
-print("Custom prompt set successfully")
+print("Custom prompt set successfully ✅")
 
 # Retrival QA
 
@@ -159,24 +161,19 @@ qa = RetrievalQA.from_chain_type (
     chain_type= "stuff",
     chain_type_kwargs = {"prompt":custom_prompt}
 )
-print("RetrievalQA set successfully")
+print("RetrievalQA set successfully ✅")
 
 # User query section
 
-#def quer ():
-#    query = input("Enter your query : ")
-#    raw_result = qa.invoke({"query" : query })
-#    llm_output = raw_result["result"].strip()
-#    print("LLM output : ",llm_output)
 def quer():
     query = input("Enter your query : ")
 
     # 🔍 Step 1: See what documents are retrieved
-    retrieved_docs = hybrid_retriever.get_relevant_documents(query)
-    print(f"\n📄 Retrieved {len(retrieved_docs)} documents:\n")
+    #retrieved_docs = hybrid_retriever.get_relevant_documents(query)
+    #print(f"\n📄 Retrieved {len(retrieved_docs)} documents:\n")
 
-    for i, doc in enumerate(retrieved_docs, 1):
-        print(f"\n--- Document {i} ---\n{doc.page_content}\n")
+    #for i, doc in enumerate(retrieved_docs, 1):
+    #    print(f"\n--- Document {i} ---\n{doc.page_content}\n")
 
     # ✅ Step 2: Call the QA chain
     raw_result = qa.invoke({"query": query})
